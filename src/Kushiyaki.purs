@@ -9,6 +9,7 @@ import Data.String (Pattern(..), indexOf, splitAt, stripPrefix)
 import Global (readInt)
 import Prim.Row as Row
 import Prim.Symbol as Symbol
+import Prim.TypeError as TE
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Record.Format (class Parse, FCons, FNil, FProxy(..), Lit, Var, kind FList)
@@ -97,6 +98,10 @@ else instance baseParseTypedParamImpl ::
 class MatchTypeName (s :: Symbol) (ty :: Type) | s -> ty
 instance stringParamTypeSymbol :: MatchTypeName "String" String
 else instance intParamTypeSymbol :: MatchTypeName "Int" Int
+else instance errParamTypeSymbol ::
+  ( Symbol.Append "Can't match type annotation to type: " s msg
+  , TE.Fail (TE.Text msg)
+  ) => MatchTypeName s ty
 
 -- convert path param strings
 class ReadParam a where
