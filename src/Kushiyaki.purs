@@ -5,16 +5,14 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Int (fromNumber)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Record as Record
 import Data.Record.Builder (Builder)
 import Data.Record.Builder as Builder
 import Data.Record.Format (class Parse, FCons, FNil, FProxy(..), Lit, Var, kind FList)
 import Data.String (Pattern(..), indexOf, splitAt, stripPrefix)
 import Global (readInt)
 import Prim.Row as Row
-import Prim.RowList as RL
+import Prim.Symbol as Symbol
 import Type.Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
-import Type.Prelude (RLProxy(..))
 
 class ParseURL (url :: Symbol) (row :: # Type) where
   parseURL :: SProxy url -> String -> Either String { | row }
@@ -38,14 +36,17 @@ instance nilParseURLImpl :: ParseURLImpl FNil () () where
   parseURLImpl _ _ = pure identity
 
 instance consVarParseURLImpl ::
-  ( IsSymbol name
-  , Row.Cons name String from' to
+  ( ParseTypedParam s name ty
+  , ReadParam ty
+  , IsSymbol name
+  , Row.Cons name ty from' to
   , Row.Lacks name from'
   , ParseURLImpl tail from from'
-  ) => ParseURLImpl (FCons (Var name) tail) from to where
+  ) => ParseURLImpl (FCons (Var s) tail) from to where
   parseURLImpl _ s = do
     split' <- split
-    let first = Builder.insert nameP split'.before
+    value <- readParam split'.before
+    let first = Builder.insert nameP value
     rest <- parseURLImpl (FProxy :: FProxy tail) split'.after
     pure $ first <<< rest
     where
@@ -68,6 +69,35 @@ instance consLitParseURLImpl ::
     where
       segment = reflectSymbol (SProxy :: SProxy segment)
 
+-- parse out the name and type from a symbol
+-- e.g. "name:Int" "name" Int
+-- defaults to String
+class ParseTypedParam (s :: Symbol) (name :: Symbol) (ty :: Type) | s -> name ty
+instance parseTypedParam ::
+  ( Symbol.Cons x xs s
+  , ParseTypedParamImpl x xs "" name ty
+  ) => ParseTypedParam s name ty
+
+class ParseTypedParamImpl
+  (x :: Symbol) (xs :: Symbol) (acc :: Symbol)
+  (name :: Symbol) (ty :: Type)
+  | x xs acc -> name ty
+instance noMatchTypedParamImpl ::
+  ( Symbol.Append acc x name
+  ) => ParseTypedParamImpl x "" acc name String
+else instance colonSplitParseTypedParamImpl ::
+  ( MatchTypeName tyName ty
+  ) => ParseTypedParamImpl ":" tyName name name ty
+else instance baseParseTypedParamImpl ::
+  ( Symbol.Cons y ys xs
+  , Symbol.Append acc x acc'
+  , ParseTypedParamImpl y ys acc' name ty
+  ) => ParseTypedParamImpl x xs acc name ty
+
+class MatchTypeName (s :: Symbol) (ty :: Type) | s -> ty
+instance stringParamTypeSymbol :: MatchTypeName "String" String
+else instance intParamTypeSymbol :: MatchTypeName "Int" Int
+
 -- convert path param strings
 class ReadParam a where
   readParam :: String -> Either String a
@@ -81,43 +111,3 @@ instance intReadParam :: ReadParam Int where
       Just a -> pure a
       Nothing ->
         Left $ "could not parse " <> s <> " into integer"
-
-class ConvertRecord (i :: # Type) (o :: # Type) where
-  convertRecord :: { | i } -> Either String { | o}
-
-instance convertRecordInst ::
-  ( RL.RowToList o os
-  , ConvertRecordFields os i () o
-  ) => ConvertRecord i o where
-  convertRecord i
-      = Builder.build <@> {}
-    <$> convertRecordFields (RLProxy :: RLProxy os) i
-
-class ConvertRecordFields (os :: RL.RowList) (r :: # Type) (i :: # Type) (o :: # Type)
-  | os -> r i o
-  where
-    convertRecordFields
-      :: RLProxy os
-      -> { | r }
-      -> Either String (Builder { | i } { | o })
-
-instance nilConvertRecordFields :: ConvertRecordFields RL.Nil r () () where
-  convertRecordFields _ _ = pure identity
-
-instance consConvertRecordFields ::
-  ( IsSymbol name
-  , ReadParam ty
-  , Row.Cons name String r' r
-  , Row.Cons name ty from' to
-  , Row.Lacks name from'
-  , ConvertRecordFields tail r from from'
-  ) => ConvertRecordFields (RL.Cons name ty tail) r from to where
-  convertRecordFields _ r = do
-    value <- readParam str
-    let first = Builder.insert nameP value
-    rest <- convertRecordFields (RLProxy :: RLProxy tail) r
-    pure $ first <<< rest
-    where
-      nameP = SProxy :: SProxy name
-      name = reflectSymbol nameP
-      str = Record.get nameP r
