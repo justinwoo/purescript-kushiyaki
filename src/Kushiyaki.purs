@@ -5,13 +5,13 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Int (fromNumber)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Record.Builder (Builder)
-import Data.Record.Builder as Builder
-import Data.Record.Format (class Parse, FCons, FNil, FProxy(..), Lit, Var, kind FList)
 import Data.String (Pattern(..), indexOf, splitAt, stripPrefix)
 import Global (readInt)
 import Prim.Row as Row
 import Prim.Symbol as Symbol
+import Record.Builder (Builder)
+import Record.Builder as Builder
+import Record.Format (class Parse, FCons, FNil, FProxy(..), Lit, Var, kind FList)
 import Type.Data.Symbol (class IsSymbol, SProxy(..), reflectSymbol)
 
 class ParseURL (url :: Symbol) (row :: # Type) where
