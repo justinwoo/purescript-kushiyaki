@@ -1,0 +1,15 @@
+{
+  "name": "purescript-kushiyaki",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-record-format": "kcsongor/purescript-record-format#compiler/0.12"
+  },
+  "devDependencies": {
+    "purescript-assert": "#compiler/0.12"
+  }
+}
