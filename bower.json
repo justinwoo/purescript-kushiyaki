@@ -14,9 +14,9 @@
   },
 
   "dependencies": {
-    "purescript-record-format": "kcsongor/purescript-record-format#compiler/0.12"
+    "purescript-record-format": "^0.1.0"
   },
   "devDependencies": {
-    "purescript-assert": "#compiler/0.12"
+    "purescript-assert": "^4.0.0"
   }
 }

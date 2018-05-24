@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Int (fromNumber)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), indexOf, splitAt, stripPrefix)
 import Global (readInt)
 import Prim.Row as Row
@@ -45,17 +45,16 @@ instance consVarParseURLImpl ::
   , ParseURLImpl tail from from'
   ) => ParseURLImpl (FCons (Var s) tail) from to where
   parseURLImpl _ s = do
-    split' <- split
-    value <- readParam split'.before
+    value <- readParam split.before
     let first = Builder.insert nameP value
-    rest <- parseURLImpl (FProxy :: FProxy tail) split'.after
+    rest <- parseURLImpl (FProxy :: FProxy tail) split.after
     pure $ first <<< rest
     where
       nameP = SProxy :: SProxy name
       name = reflectSymbol nameP
-      split = maybe (Left "error") Right $ case indexOf (Pattern "/") s of
+      split = case indexOf (Pattern "/") s of
         Just idx -> splitAt idx s
-        Nothing -> pure { before: s, after: "" }
+        Nothing -> { before: s, after: "" }
 
 instance consLitParseURLImpl ::
   ( IsSymbol segment
