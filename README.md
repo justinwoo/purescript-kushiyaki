@@ -24,13 +24,17 @@ main = do
       assert $ r.name == "Bill"
       assert $ r.age == "12"
 
-  let parseURL2' = parseURL (SProxy :: SProxy "/hello/{name}/{age}")
+  -- let (parseURL2'
+  --       -- inferred type:
+  --       :: String -> Either String { name :: String, age :: Int })
+  let parseURL2'
+        = parseURL (SProxy :: SProxy "/hello/{name:String}/{age:Int}")
   let parsed2 = parseURL2' "/hello/Bill/12"
-  case convertRecord =<< parsed of
+  case parsed2 of
     Left e -> do
       log $ "didn't work: " <> e
       assert $ 1 == 2
-    Right (r :: { name :: String, age :: Int }) -> do
+    Right r -> do
       assert $ r.name == "Bill"
       assert $ r.age == 12
 ```
